@@ -177,6 +177,25 @@ namespace restapi.Models
             return annotatedLine;
         }
 
+        public TimecardLine UpdateLine(Guid lineId, DocumentLine documentLine)
+        {
+
+            var lineToUpdate = Lines.First(l => l.UniqueIdentifier == lineId);
+
+            var updatedLine = new TimecardLine(documentLine);
+
+            updatedLine.UniqueIdentifier = lineId;
+
+            updatedLine.Recorded = lineToUpdate.Recorded;
+
+            if (Lines.Remove(lineToUpdate))
+            {
+                Lines.Add(updatedLine);
+            }
+
+            return updatedLine;
+        }
+
         public bool CanBeDeleted()
         {
             return (Status == TimecardStatus.Cancelled || Status == TimecardStatus.Draft);
