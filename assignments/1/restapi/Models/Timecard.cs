@@ -186,8 +186,6 @@ namespace restapi.Models
 
             replacedLine.UniqueIdentifier = lineId;
 
-            replacedLine.Recorded = lineToReplace.Recorded;
-
             if (Lines.Remove(lineToReplace))
             {
                 Lines.Add(replacedLine);
