@@ -21,7 +21,7 @@ namespace restapi.Models
             Transitions = new List<Transition>();
         }
 
-        public readonly int Employee;
+        public int Employee { get; private set; }
 
         public TimecardStatus Status
         {
