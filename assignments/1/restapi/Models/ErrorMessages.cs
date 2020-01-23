@@ -20,4 +20,18 @@ namespace restapi.Models
 
         public string Message { get => "No state transition of requested type present in timecard"; }
     }
+
+    public class SelfApproveError
+    {
+        public int ErrorCode { get => 103; }
+
+        public string Message { get => "Employee cannot approve their own timecard"; }
+    }
+
+    public class FormattingError
+    {
+        public int ErrorCode { get => 104; }
+
+        public string Message { get => "Request input improperly formatted"; }
+    }
 }

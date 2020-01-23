@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using restapi.Models;
+using Newtonsoft.Json.Linq;
 
 namespace restapi.Controllers
 {
@@ -146,12 +147,11 @@ namespace restapi.Controllers
             }
         }
 
-        [HttpPost("{timesheetId:guid}/lines/{lineId}")]
+        [HttpPost("{timesheetId:guid}/lines/{lineId:guid}")]
         [Produces(ContentTypes.TimesheetLine)]
         [ProducesResponseType(typeof(TimecardLine), 200)]
-        [ProducesResponseType(404)]
         [ProducesResponseType(typeof(InvalidStateError), 409)]
-        public IActionResult UpdateLine(Guid timesheetId, Guid lineId,[FromBody] DocumentLine documentLine)
+        public IActionResult ReplaceLine(Guid timesheetId, Guid lineId,[FromBody] DocumentLine documentLine)
         {
             logger.LogInformation($"Looking for timesheet {timesheetId}");
 
@@ -164,13 +164,53 @@ namespace restapi.Controllers
                     return StatusCode(409, new InvalidStateError() { });
                 }
 
-                var updatedLine = timecard.UpdateLine(lineId, documentLine);
+                var replacedLine = timecard.ReplaceLine(lineId, documentLine);
 
-                logger.LogInformation($"Updating line {lineId} on timesheet {timesheetId}");
+                logger.LogInformation($"Replacing line {lineId} on timesheet {timesheetId}");
 
                 repository.Update(timecard);
 
-                return Ok(updatedLine);
+                return Ok(replacedLine);
+            }
+            else
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpPatch("{timesheetId:guid}/lines/{lineId:guid}")]
+        [Produces(ContentTypes.TimesheetLine)]
+        [ProducesResponseType(typeof(TimecardLine), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(typeof(FormattingError), 400)]
+        [ProducesResponseType(typeof(InvalidStateError), 409)]
+        public IActionResult UpdateLine(Guid timesheetId, Guid lineId,[FromBody] JObject request)
+        {
+            logger.LogInformation($"Looking for timesheet {timesheetId}");
+
+            Timecard timecard = repository.Find(timesheetId);
+
+            if (timecard != null && timecard.HasLine(lineId))
+            {
+                if (timecard.Status != TimecardStatus.Draft)
+                {
+                    return StatusCode(409, new InvalidStateError() { });
+                }
+
+                logger.LogInformation($"Updating line {lineId} on timesheet {timesheetId}");
+
+                try
+                {
+                    var updatedLine = timecard.UpdateLine(lineId, request);
+
+                    repository.Update(timecard);
+
+                    return Ok(updatedLine);
+                }
+                catch (FormatException)
+                {
+                    return BadRequest(new FormattingError() { });
+                }
             }
             else
             {
@@ -410,6 +450,7 @@ namespace restapi.Controllers
         [HttpPost("{id:guid}/approval")]
         [Produces(ContentTypes.Transition)]
         [ProducesResponseType(typeof(Transition), 200)]
+        [ProducesResponseType(typeof(SelfApproveError), 400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(typeof(InvalidStateError), 409)]
         [ProducesResponseType(typeof(EmptyTimecardError), 409)]
@@ -424,6 +465,11 @@ namespace restapi.Controllers
                 if (timecard.Status != TimecardStatus.Submitted)
                 {
                     return StatusCode(409, new InvalidStateError() { });
+                }
+
+                if (approval.Approver == timecard.Employee)
+                {
+                    return StatusCode(400, new SelfApproveError() { });
                 }
 
                 var transition = new Transition(approval, TimecardStatus.Approved);

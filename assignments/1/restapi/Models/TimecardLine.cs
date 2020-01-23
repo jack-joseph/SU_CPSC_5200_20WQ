@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using restapi.Helpers;
 
 namespace restapi.Models
@@ -35,6 +36,60 @@ namespace restapi.Models
 
             Updated = DateTime.UtcNow;
 
+            SetupPeriodValues();
+
+            return this;
+        }
+
+        public TimecardLine Update(JObject request)
+        {
+            int updates = 0;
+
+            foreach (var req in request)
+            {
+                try
+                {
+                    if (req.Key.ToLower() == "week")
+                    {
+                        Week = (int) req.Value;
+                        updates++;
+                        continue;
+                    }
+                    if (req.Key.ToLower() == "year")
+                    {
+                        Year = (int) req.Value;
+                        updates++;
+                        continue;
+                    }
+                    if (req.Key.ToLower() == "day")
+                    {
+                        Day = GetDayOfWeek((string) req.Value);
+                        updates++;
+                        continue;
+                    }
+                    if (req.Key.ToLower() == "hours")
+                    {
+                        Hours = (float) req.Value;
+                        updates++;
+                        continue;
+                    }
+                    if (req.Key.ToLower() == "project")
+                    {
+                        Project = (string) req.Value;
+                        updates++;
+                        continue;
+                    }
+                }
+                catch (Exception)
+                {
+                    throw new FormatException();
+                }
+            }
+
+            if (updates > 0)
+            {
+                Updated = DateTime.UtcNow;
+            }
             SetupPeriodValues();
 
             return this;
@@ -125,6 +180,29 @@ namespace restapi.Models
             workDate = FirstDateOfWeekISO8601(Year, Week).AddDays((int)Day - 1);
             periodFrom = FirstDateOfWeekISO8601(Year, Week);
             periodTo = periodFrom.AddDays(7);
+        }
+
+        private DayOfWeek GetDayOfWeek(string day)
+        {
+            switch(day.ToLower())
+            {
+                case "monday":
+                    return DayOfWeek.Monday;
+                case "tuesday":
+                    return DayOfWeek.Tuesday;
+                case "wednesday":
+                    return DayOfWeek.Wednesday;
+                case "thursday":
+                    return DayOfWeek.Thursday;
+                case "friday":
+                    return DayOfWeek.Friday;
+                case "saturday":
+                    return DayOfWeek.Saturday;
+                case "sunday":
+                    return DayOfWeek.Sunday;
+                default:
+                    throw new Exception();
+            }
         }
 
 

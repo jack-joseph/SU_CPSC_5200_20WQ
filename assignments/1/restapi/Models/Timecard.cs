@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LiteDB;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using restapi.Helpers;
 
 namespace restapi.Models
@@ -20,7 +21,7 @@ namespace restapi.Models
             Transitions = new List<Transition>();
         }
 
-        public int Employee { get; set; }
+        public readonly int Employee;
 
         public TimecardStatus Status
         {
@@ -177,23 +178,31 @@ namespace restapi.Models
             return annotatedLine;
         }
 
-        public TimecardLine UpdateLine(Guid lineId, DocumentLine documentLine)
+        public TimecardLine ReplaceLine(Guid lineId, DocumentLine documentLine)
         {
+            var lineToReplace = Lines.First(l => l.UniqueIdentifier == lineId);
 
-            var lineToUpdate = Lines.First(l => l.UniqueIdentifier == lineId);
+            var replacedLine = new TimecardLine(documentLine);
 
-            var updatedLine = new TimecardLine(documentLine);
+            replacedLine.UniqueIdentifier = lineId;
 
-            updatedLine.UniqueIdentifier = lineId;
+            replacedLine.Recorded = lineToReplace.Recorded;
 
-            updatedLine.Recorded = lineToUpdate.Recorded;
-
-            if (Lines.Remove(lineToUpdate))
+            if (Lines.Remove(lineToReplace))
             {
-                Lines.Add(updatedLine);
+                Lines.Add(replacedLine);
             }
 
-            return updatedLine;
+            return replacedLine;
+        }
+
+        public TimecardLine UpdateLine(Guid lineId, JObject request)
+        {
+            var lineToUpdate = Lines.First(l => l.UniqueIdentifier == lineId);
+
+            lineToUpdate.Update(request);
+
+            return lineToUpdate;
         }
 
         public bool CanBeDeleted()
