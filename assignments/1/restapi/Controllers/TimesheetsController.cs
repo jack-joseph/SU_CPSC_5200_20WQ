@@ -450,7 +450,7 @@ namespace restapi.Controllers
         [HttpPost("{id:guid}/approval")]
         [Produces(ContentTypes.Transition)]
         [ProducesResponseType(typeof(Transition), 200)]
-        [ProducesResponseType(typeof(SelfApproveError), 400)]
+        [ProducesResponseType(typeof(SelfApproveError), 409)]
         [ProducesResponseType(404)]
         [ProducesResponseType(typeof(InvalidStateError), 409)]
         [ProducesResponseType(typeof(EmptyTimecardError), 409)]
@@ -469,7 +469,7 @@ namespace restapi.Controllers
 
                 if (approval.Approver == timecard.Employee)
                 {
-                    return StatusCode(400, new SelfApproveError() { });
+                    return StatusCode(409, new SelfApproveError() { });
                 }
 
                 var transition = new Transition(approval, TimecardStatus.Approved);
